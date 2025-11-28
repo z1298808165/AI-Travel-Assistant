@@ -1,4 +1,6 @@
-# ✈️ AI-Travel-Guide (HTML Single Page)
+# **仅为了方便自己记录以及备份使用！！！**
+
+# ✈️ AI-Travel-Guide (HTML Single Page)  
 
 > **打造您的专属数字旅行手账：杂志级审美、全交互、单文件自动保存。**
 
