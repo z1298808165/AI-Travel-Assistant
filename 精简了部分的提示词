@@ -83,7 +83,7 @@
 
     2.  **仪表盘 (Dashboard Grid)：**
         *   **样式一致性：** 仪表盘内的 4 个小卡片必须与下方的时间轴卡片保持视觉一致，统一使用 `rounded-2xl` 圆角。
-        *   **内容：** 2x2 网格（日期、旅伴、预算、Tag徽章）。
+        *   **内容：** 2x2 网格（日期、旅伴、预算、Tag徽章）,固定宽度，强制两行两列显示。
             *   **Tag徽章样式：** 必须是带颜色的矩形徽章。
 			*   **新增Tag：** 有个可以点击的+按钮，点击可以新增Tag
 			*   **配色预置：** 至少预置10个以上的合适的颜色色值，以提供每次添加时进行随机
@@ -94,11 +94,15 @@
 每个 Day 是一个独立的 `section`。
 *   **配色系统 (Advanced Color Themes):**
     *   **逻辑要求：** JS 中不再只随机背景色。必须定义一个 **主题对象数组** `CARD_THEMES`。
-    *   **对象结构：** 每个主题需包含 `{ bg: '背景色类', border: '深色边框类', innerBorder: '内部线条色类' }`。
-        *   *Example:* `{ bg: 'bg-rose-50/70', border: 'border-rose-200', innerBorder: 'border-rose-200' }`。
-        *   **边框要求：** 卡片必须拥有一个与背景同色系但 **颜色更深/更明显** 的描边框 (`border`)。
-    *   **切换逻辑：** `window.cycleCardColor(btn)` 函数必须能同时更新卡片的背景色、卡片的外边框色、以及卡片内部第一行的时间/地点分隔线颜色。
-    *   **配色预置：** 至少预置10个以上的合适的颜色色值，以提供每次添加或点击换色时进行随机
+    *   **对象结构：** 每个主题需包含 `{ bg: '背景色类', border: '深色边框类', innerBorder: '内部线条色类', badge: '时间胶囊背景色类' }`。
+        * *Example:* `{ bg: 'bg-rose-50/70', border: 'border-rose-200', innerBorder: 'border-rose-200', badge: 'bg-rose-500' }`。
+    *   **边框要求：** 卡片必须拥有一个与背景同色系但 **颜色更深/更明显** 的描边框 (`border`)。
+    *   **切换逻辑：** `window.cycleCardColor(btn)` 函数必须能同时更新：
+      1.  卡片的背景色 (`bg-*`)。
+      2.  卡片的外边框色 (`border-*`)。
+      3.  卡片内部第一行的时间/地点分隔线颜色 (`border-*`)。
+      4.  **时间胶囊背景色 (`bg-*`)**：即 `.js-time-badge` 元素的背景颜色（文字颜色统一为白色）。
+    *   **配色预置：** 至少预置10个以上的合适的颜色色值，以提供每次添加或点击换色时进行随机。
 
 *   **HTML 结构要求：**
     *   **外层容器：** 必须包含动态的 `border` 类。
@@ -120,138 +124,126 @@
 
 *   **HTML 关键结构：**
     ```html
-    <section class="mb-12 day-section js-day-item relative group/day">
-        <!-- 右侧工具区：移动端贴右，桌面端悬浮容器外 (-right-10) -->
-        <div class="absolute top-1 right-0 md:-right-10 flex flex-col items-center space-y-1 opacity-100 md:opacity-0 md:group-hover/day:opacity-100 transition-opacity z-10" data-html2canvas-ignore>
-            <!-- 包含：拖拽手柄(SVG), 折叠按钮(window.toggleDayBody), 删除按钮(window.deleteDay) -->
-        </div>
-
-        <!-- Title Area -->
-        <div class="flex items-stretch mb-6">
-             <!-- 竖线：JS 随机分配颜色 (如 bg-rose-500) -->
-             <div class="js-day-line w-1.5 rounded-full mr-4 bg-rose-500 flex-shrink-0"></div>
-             <div class="flex-grow pr-8 md:pr-0">
-                <h2 class="text-3xl font-serif font-bold text-gray-800 flex items-center js-day-title">
-                    <!-- Day X 文字：颜色需与竖线一致 -->
-                    <span class="day-number-label mr-2 js-day-number select-none text-rose-500">Day 1</span> 
-                    <span class="text-gray-400 font-light select-none">|</span>
-                    <span contenteditable="true" class="outline-none ml-2">[点击编辑主题]</span>
-                </h2>
-                <!-- 天气/温度组件 (contenteditable) -->
-                <div class="inline-flex items-center mt-2 px-3 py-1 bg-white/50 rounded-full border border-gray-200">
-                    <span class="text-xl mr-2">☀️</span>
-                    <span class="text-sm font-mono text-gray-600" contenteditable="true">24°C / 晴</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Body Area (Collapsible) -->
-        <div class="js-day-body transition-all origin-top">
-            <!-- 混合排序容器 (Sortable Zone) -->
-            <div class="timeline-border pl-6 ml-3 space-y-8 relative border-l-2 border-gray-200 js-timeline-container">
-                 <!-- 此处插入 Type A 或 Type B 卡片 -->
-            </div>
-            
-            <!-- 添加新卡片按钮 (统一为虚线风格) -->
-            <button onclick="window.addTimelineCard(this.previousElementSibling, 'activity')" data-html2canvas-ignore class="group w-full py-3 mt-4 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 hover:text-indigo-500 hover:border-indigo-500 transition-colors flex items-center justify-center text-sm">
-                <span>+ Add Moment</span>
-            </button>
-        </div>
-    </section>
-    ```
-
-#### 3. 时间轴节点 (Timeline Cards)
-**Type A: 普通时间/活动卡片 (Glass Card)**
-*   **配色逻辑：** JS 定义 `CARD_THEMES` 数组（对象包含 `{bg, border, innerBorder}`）。`cycleCardColor` 必须同时更新背景、外边框、内部下划线颜色。
-*   **配色预置：** 至少预置10个以上的合适的颜色色值，以提供每次添加或点击换色时进行随机
-*   **圆角：** 严格统一为 `rounded-2xl`。
-*   **内容主体 (Body)：**
-    *   **Header:** 时间 (Mono bold) + 地点 (Small uppercase).
-	*	地点位于时间右侧
-    *   **Title:** `h3` 标题 (Serif bold).
-    *   **Default Content Block (重要):** 标题下方**不再**放置静态 `<p>` 标签。必须初始化插入一个 **“📝文本” (Text)** 类型的模块。该模块本质上是一个 `div`，样式与通过工具栏插入的文本块完全一致，且**具备删除按钮**，允许用户将其删除。
-*   **顶部工具栏 (右上角)：** 包含 拖拽手柄、换色按钮、删除按钮。
-*   **底部快速插入栏 (Quick Insert)：**
-    *   **按钮组:** 包含 `📝文本`, `🖼️相册`, `📷机位`, `⚠️提醒`, `🎫门票`, `🚗交通` (交通按钮需特殊高亮样式：`bg-blue-50 text-blue-600`)。
-    *   **逻辑区分 (关键)：**
-        *   点击 前 5 个按钮：在**当前卡片内部**追加内容块。
-        *   点击 **`🚗交通` 按钮：** 触发 `window.insertTimelineCard(currentCard, 'transit')`，在当前卡片**正下方**插入一个新的 **Type B 卡片**。
-*   **新增时间轴节点（添加新卡片按钮）：** 点击后插入的卡片主题色应该是随机的，而不是默认白色
-*   **HTML 结构：**
-    ```html
-	<!-- Type A 卡片结构模板 -->
-	<div class="js-timeline-card relative group/card rounded-2xl border border-teal-200 bg-teal-50/40 p-6">
-		
-		<!-- 1. 顶部悬浮工具栏 (默认隐藏，Hover显示) -->
-		<div class="absolute top-4 right-4 flex gap-2 opacity-0 group-hover/card:opacity-100 transition-opacity no-print bg-white/80 rounded-lg p-1 backdrop-blur">
-			<button class="w-6 h-6 text-xs rounded hover:bg-gray-100 cursor-move card-drag-handle">✥</button>
-			<button onclick="window.cycleCardColor(this)" class="w-6 h-6 text-xs rounded hover:bg-gray-100">🎨</button>
-			<button onclick="window.confirmDelete(this.closest('.js-timeline-card'))" class="w-6 h-6 text-xs rounded hover:bg-red-100 text-red-500">✕</button>
+	<section class="mb-12 day-section js-day-item relative group/day">
+		<div class="absolute top-0 right-0 md:-right-14 flex flex-col gap-2 opacity-100 md:opacity-0 md:group-hover/day:opacity-100 transition-all duration-300 z-10 no-print">
+			<div class="flex flex-col items-center bg-white/40 backdrop-blur-md border border-white/60 shadow-sm rounded-full py-2 px-1">
+				<button class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-wuxi-blue transition-colors cursor-move day-drag-handle">
+					</button>
+				<button onclick="window.toggleDayBody(this)" class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
+					</button>
+				<div class="w-4 h-px bg-gray-300/50 my-1"></div>
+				<button onclick="window.deleteDay(this)" class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors">
+					</button>
+			</div>
 		</div>
 
-		<!-- 2. Header: 时间与地点 -->
-		<div class="flex items-center gap-2 border-teal-200 pb-2 mb-3">
-			<span class="font-mono font-bold text-teal-800 text-lg" contenteditable="true">
-				<!-- Insert Time Here (e.g. 09:00) -->
-			</span>
-			<span class="text-xs font-bold uppercase tracking-wider text-teal-600" contenteditable="true">
-				<!-- Insert Location Here -->
-			</span>
-		</div>
-
-		<!-- 3. Title: 标题 -->
-		<h3 class="text-xl font-serif font-bold text-gray-800 mb-2" contenteditable="true">
-			<!-- Insert Title Here -->
-		</h3>
-
-		<!-- 4. Content List: 内容列表 -->
-		<div class="content-list space-y-2">
-			<!-- 默认文本块 (可删除) -->
-			<div class="js-content-block relative group/item">
-				<button onclick="this.parentElement.remove()" class="absolute -right-2 -top-2 text-red-400 opacity-0 group-hover/item:opacity-100 no-print">×</button>
-				<div class="p-3 bg-white/50 rounded-lg text-sm text-gray-600 leading-relaxed border border-transparent hover:border-gray-200" contenteditable="true">
-					<!-- Insert Initial Text Here -->
+		<div class="flex items-stretch mb-6">
+			 <div class="js-day-line w-1.5 rounded-full mr-4 bg-rose-500 flex-shrink-0"></div>
+			 <div class="flex-grow pr-8 md:pr-0">
+				<h2 class="text-3xl font-serif font-bold text-gray-800 flex items-center js-day-title">
+					<span class="day-number-label mr-2 js-day-number select-none text-rose-500">Day 1</span> 
+					<span class="text-gray-400 font-light select-none">|</span>
+					<span contenteditable="true" class="outline-none ml-2">[点击编辑主题]</span>
+				</h2>
+				<div class="inline-flex items-center mt-2 px-3 py-1 bg-white/50 rounded-full border border-gray-200">
+					<span class="text-xl mr-2">☀️</span>
+					<span class="text-sm font-mono text-gray-600" contenteditable="true">24°C / 晴</span>
 				</div>
 			</div>
 		</div>
 
-		<!-- 5. Quick Insert: 底部工具栏 -->
-		<div class="mt-4 pt-2 border-t border-dashed border-gray-300 flex gap-2 overflow-x-auto no-print opacity-50 hover:opacity-100 transition-opacity">
-			<button onclick="window.addContent(this, 'text')" class="text-xs px-2 py-1 bg-white rounded border hover:bg-gray-50">📝文本</button>
-			<button onclick="window.addContent(this, 'photo')" class="text-xs px-2 py-1 bg-white rounded border hover:bg-gray-50">🖼️相册</button>
-			<button onclick="window.addContent(this, 'camera')" class="text-xs px-2 py-1 bg-white rounded border hover:bg-gray-50">📷机位</button>
-			<button onclick="window.addContent(this, 'warning')" class="text-xs px-2 py-1 bg-white rounded border hover:bg-gray-50">⚠️提醒</button>
-			<button onclick="window.addContent(this, 'ticket')" class="text-xs px-2 py-1 bg-white rounded border hover:bg-gray-50">🎫门票</button>
-			<button onclick="window.insertTimelineCard(this.closest('.js-timeline-card'), 'transit')" class="text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded border border-blue-200 hover:bg-blue-100 font-bold">🚗交通</button>
+		<div class="js-day-body transition-all origin-top">
+			<div class="timeline-border pl-6 ml-3 space-y-8 relative border-l-2 border-gray-200 js-timeline-container">
+				 </div>
+
+			<button onclick="window.addTimelineCard(this.previousElementSibling, 'activity')" data-html2canvas-ignore class="group w-full py-3 mt-4 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 hover:text-indigo-500 hover:border-indigo-500 transition-colors flex items-center justify-center text-sm">
+				<span>+ Add Moment</span>
+			</button>
 		</div>
-	</div>
+	</section>
     ```
 
-**Type B: 交通节点卡片 (Traffic Pill)**
-*   **样式：** 醒目的“胶囊/药丸”形状，固定宽度。
-*   **功能：** 支持独立拖拽、独立删除。
-*   **HTML 结构：**
+#### 3. 时间轴节点 (Timeline Cards)
+**Type A: 普通时间/活动卡片 (Glass Card)**
+  *   **配色逻辑：** JS 定义 `CARD_THEMES` 数组（对象包含 `{bg, border, innerBorder, badge}`）。`cycleCardColor` 必须同时更新背景、外边框、内部下划线颜色以及**时间胶囊的背景色**。
+  *   **配色预置：** 至少预置10套以上的合适的颜色色值。
+  *   **圆角：** 严格统一为 `rounded-2xl`。
+  *   **内容主体 (Body)：**
+      *   **Header:** \*   **时间 (Time Badge):** 必须设计为**圆角矩形胶囊样式** (`rounded-md` 或 `rounded-lg`)，使用**高饱和度背景色**（取自 `badge` 属性）配合 **白色文字**，字体使用 Monospace 加粗，带轻微阴影。
+          *   **地点 (Location):** 位于时间右侧，大写，字体较小，颜色适配卡片深色调。
+      *   **Title:** `h3` 标题 (Serif bold).
+      *   **Default Content Block (重要):** 标题下方**不再**放置静态 `<p>` 标签。必须初始化插入一个 **“📝文本” (Text)** 类型的模块。该模块本质上是一个 `div`，样式与通过工具栏插入的文本块完全一致，且**具备删除按钮**，允许用户将其删除。
+  *   **顶部工具栏 (右上角)：** 包含 拖拽手柄、换色按钮、删除按钮。
+  *   **底部快速插入栏 (Quick Insert)：** (保持原有要求不变...)
+  *   **新增时间轴节点（添加新卡片按钮）：** 点击后插入的卡片主题色应该是随机的。
+  *   **HTML 结构：**
     ```html
-    <div class="group/traffic relative py-2 my-2 js-sortable-item flex justify-center z-10" data-type="traffic">
-        <!-- 拖拽手柄 (悬浮显示) -->
-        <div class="traffic-drag-handle ..."><!-- SVG --></div>
+    <div class="js-timeline-card relative group/card rounded-2xl border border-teal-200 bg-teal-50/40 p-6 transition-colors duration-300">
         
-        <!-- 胶囊主体 -->
-        <div class="relative flex items-center gap-3 pl-2 pr-4 py-2 rounded-full border border-gray-300 bg-gray-50/90 shadow-sm w-300 mx-auto">
-            <!-- 左侧装饰锚点 -->
-            <div class="absolute left-[-3rem] w-3 h-3 rounded-full bg-gray-300 border-2 border-white"></div>
-            <!-- 图标(点击切换) -->
-            <div class="w-8 h-8 rounded-full bg-slate-200 ..." onclick="window.cycleTrafficIcon(this)">🚗</div>
-            <!-- 可编辑内容 -->
-            <div class="flex divide-x ...">
-                <div contenteditable="true" placeholder="距离">15km</div>
-                <div contenteditable="true" placeholder="时间">30min</div>
+        <div class="absolute top-4 right-4 flex gap-2 opacity-0 group-hover/card:opacity-100 transition-opacity no-print bg-white/80 rounded-lg p-1 backdrop-blur z-20">
+            <button class="w-6 h-6 text-xs rounded hover:bg-gray-100 cursor-move card-drag-handle">✥</button>
+            <button onclick="window.cycleCardColor(this)" class="w-6 h-6 text-xs rounded hover:bg-gray-100">🎨</button>
+            <button onclick="window.confirmDelete(this.closest('.js-timeline-card'))" class="w-6 h-6 text-xs rounded hover:bg-red-100 text-red-500">✕</button>
+        </div>
+
+        <div class="flex items-center gap-3 border-b border-teal-200 pb-3 mb-3 transition-colors duration-300">
+            <span class="js-time-badge px-3 py-1 rounded-lg bg-teal-600 text-white font-mono font-bold text-sm shadow-sm transition-colors duration-300 select-none" contenteditable="true">
+                </span>
+            
+            <span class="text-xs font-bold uppercase tracking-wider text-teal-800/70" contenteditable="true">
+                </span>
+        </div>
+
+        <h3 class="text-xl font-serif font-bold text-gray-800 mb-2 leading-tight" contenteditable="true">
+            </h3>
+
+        <div class="content-list space-y-2">
+            <div class="js-content-block relative group/item">
+                <button onclick="this.parentElement.remove()" class="absolute -right-2 -top-2 text-red-400 opacity-0 group-hover/item:opacity-100 no-print z-10">×</button>
+                <div class="p-3 bg-white/60 rounded-lg text-sm text-gray-700 leading-relaxed border border-transparent hover:border-gray-200 transition-all" contenteditable="true">
+                    </div>
             </div>
-            <!-- 删除按钮 (触发全局弹窗) -->
-            <button onclick="window.confirmDelete(this.closest('.js-sortable-item'))">...</button>
+        </div>
+
+        <div class="mt-4 pt-2 border-t border-dashed border-gray-300/50 flex gap-2 overflow-x-auto no-print opacity-60 hover:opacity-100 transition-opacity scrollbar-hide">
+            <button onclick="window.addContent(this, 'text')" class="flex-shrink-0 text-xs px-2 py-1 bg-white rounded border border-gray-200 hover:bg-gray-50 shadow-sm">📝文本</button>
+            <button onclick="window.addContent(this, 'photo')" class="flex-shrink-0 text-xs px-2 py-1 bg-white rounded border border-gray-200 hover:bg-gray-50 shadow-sm">🖼️相册</button>
+            <button onclick="window.addContent(this, 'camera')" class="flex-shrink-0 text-xs px-2 py-1 bg-white rounded border border-gray-200 hover:bg-gray-50 shadow-sm">📷机位</button>
+            <button onclick="window.addContent(this, 'warning')" class="flex-shrink-0 text-xs px-2 py-1 bg-white rounded border border-gray-200 hover:bg-gray-50 shadow-sm">⚠️提醒</button>
+            <button onclick="window.addContent(this, 'ticket')" class="flex-shrink-0 text-xs px-2 py-1 bg-white rounded border border-gray-200 hover:bg-gray-50 shadow-sm">🎫门票</button>
+            <button onclick="window.insertTimelineCard(this.closest('.js-timeline-card'), 'transit')" class="flex-shrink-0 text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded border border-blue-200 hover:bg-blue-100 font-bold shadow-sm">🚗交通</button>
         </div>
     </div>
     ```
+
+**Type B: 交通节点卡片 (Traffic Pill)**
+*   **样式：** 醒目的“胶囊/药丸”形状，固定最小宽度。
+*   **功能：** 支持独立拖拽、独立删除。
+*   **HTML 结构：**
+    ```html
+	<div class="group/traffic relative py-2 my-2 js-sortable-item flex justify-center z-10" data-type="traffic">
+			
+			<div class="relative flex items-center gap-1 pl-2 pr-4 py-2 rounded-full border border-gray-300 bg-gray-50/90 shadow-sm w-[300px] flex-none mx-auto group-hover/traffic:border-gray-400 transition-colors">
+				
+				<div class="absolute left-[-3rem] w-3 h-3 rounded-full bg-gray-300 border-2 border-white z-0 hidden sm:block"></div>
+
+				<div class="traffic-drag-handle cursor-move text-gray-300 hover:text-gray-500 px-1 shrink-0 flex items-center transition-colors" title="拖拽排序">
+					<svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>
+				</div>
+				
+				<div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center cursor-pointer hover:bg-slate-300 transition-colors shrink-0 text-lg select-none" onclick="window.cycleTrafficIcon(this)">🚗</div>
+				
+				<div class="flex divide-x divide-gray-300 w-full text-sm text-gray-600">
+					<div class="px-2 flex-1 text-center outline-none hover:bg-gray-100 rounded cursor-text transition-colors truncate" contenteditable="true" placeholder="距离">15km</div>
+					<div class="px-2 flex-1 text-center outline-none hover:bg-gray-100 rounded cursor-text transition-colors truncate" contenteditable="true" placeholder="时间">30min</div>
+				</div>
+				
+				<button class="text-gray-300 hover:text-red-500 transition-colors ml-1 shrink-0" onclick="window.confirmDelete(this.closest('.js-sortable-item'))">
+					<svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+				</button>
+			</div>
+		</div>
+    ```
 
 #### 4. 样式化内容模块 (Styled Content Blocks)
 通过 Type A 卡片底部工具栏插入的模块，均需包含右上角删除按钮 `js-delete-item`，且均为相同的宽度(到容器边缘)：
