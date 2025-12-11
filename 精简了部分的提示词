@@ -178,33 +178,28 @@
   *   **新增时间轴节点（添加新卡片按钮）：** 点击后插入的卡片主题色应该是随机的。
   *   **HTML 结构：**
     ```html
-    <div class="js-timeline-card relative group/card rounded-2xl border border-teal-200 bg-teal-50/40 p-6 transition-colors duration-300">
-        
-        <div class="absolute top-4 right-4 flex gap-2 opacity-0 group-hover/card:opacity-100 transition-opacity no-print bg-white/80 rounded-lg p-1 backdrop-blur z-20">
-            <button class="w-6 h-6 text-xs rounded hover:bg-gray-100 cursor-move card-drag-handle">✥</button>
-            <button onclick="window.cycleCardColor(this)" class="w-6 h-6 text-xs rounded hover:bg-gray-100">🎨</button>
-            <button onclick="window.confirmDelete(this.closest('.js-timeline-card'))" class="w-6 h-6 text-xs rounded hover:bg-red-100 text-red-500">✕</button>
-        </div>
+	<div class="content-list space-y-2 js-sortable-content min-h-[10px]">
+		
+		<!-- 修改处 1: 移除了 pl-7，添加了 ml-0 或保持默认，确保内容靠左对齐 -->
+		<div class="js-content-block relative group/item transition-all duration-200">
+			
+			<!-- 修改处 2: 将 left-0 改为 -left-8 (或 -left-7)，让抓手悬浮在卡片内边距的空白处 -->
+			<!-- 同时也建议增加 flex 居中让图标看起来更舒服 -->
+			<div class="module-drag-handle absolute -left-8 top-3 w-6 h-6 flex items-center justify-center cursor-grab active:cursor-grabbing text-gray-400 hover:text-teal-600 opacity-0 group-hover/item:opacity-100 transition-opacity z-10 select-none" title="按住拖拽排序">
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM8 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM8 18a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM16 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM16 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM16 18a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/></svg>
+			</div>
 
-        <div class="flex items-center gap-3 border-b border-teal-200 pb-3 mb-3 transition-colors duration-300">
-            <span class="js-time-badge px-3 py-1 rounded-lg bg-teal-600 text-white font-mono font-bold text-sm shadow-sm transition-colors duration-300 select-none" contenteditable="true">
-                </span>
-            
-            <span class="text-xs font-bold uppercase tracking-wider text-teal-800/70" contenteditable="true">
-                </span>
-        </div>
+			<button onclick="this.closest('.js-content-block').remove()" class="absolute -right-2 -top-2 text-red-400 opacity-0 group-hover/item:opacity-100 no-print z-10 hover:text-red-600 transition-colors bg-white/80 backdrop-blur shadow-sm rounded-full p-1 border border-red-100">
+				<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+			</button>
 
-        <h3 class="text-xl font-serif font-bold text-gray-800 mb-2 leading-tight" contenteditable="true">
-            </h3>
+			<!-- 内容区域现在会铺满宽度，与上方的 Title 对齐 -->
+			<div class="p-3 bg-white/60 rounded-lg text-sm text-gray-700 leading-relaxed border border-transparent hover:border-teal-200/50 transition-all focus-within:bg-white focus-within:border-teal-300 focus-within:shadow-sm" contenteditable="true">
+				在此处输入行程详情...
+			</div>
+		</div>
 
-        <div class="content-list space-y-2">
-            <div class="js-content-block relative group/item">
-                <button onclick="this.parentElement.remove()" class="absolute -right-2 -top-2 text-red-400 opacity-0 group-hover/item:opacity-100 no-print z-10">×</button>
-                <div class="p-3 bg-white/60 rounded-lg text-sm text-gray-700 leading-relaxed border border-transparent hover:border-gray-200 transition-all" contenteditable="true">
-                    </div>
-            </div>
-        </div>
-
+	</div>
         <div class="mt-4 pt-2 border-t border-dashed border-gray-300/50 flex gap-2 overflow-x-auto no-print opacity-60 hover:opacity-100 transition-opacity scrollbar-hide">
             <button onclick="window.addContent(this, 'text')" class="flex-shrink-0 text-xs px-2 py-1 bg-white rounded border border-gray-200 hover:bg-gray-50 shadow-sm">📝文本</button>
             <button onclick="window.addContent(this, 'photo')" class="flex-shrink-0 text-xs px-2 py-1 bg-white rounded border border-gray-200 hover:bg-gray-50 shadow-sm">🖼️相册</button>
@@ -302,7 +297,10 @@
 1.  **SortableJS 多级拖拽：**
     *   Level 1: `#all-days-container` (Day 排序)。
     *   Level 2: `.js-timeline-container` (Card 排序)。
-    *   Level 3: `.content-list` (Card 内内容排序)。
+	* **Level 3: `.js-sortable-content` (内容模块级排序)。**
+		* **关键配置：** 必须配置 `handle: '.module-drag-handle'`。**原因：** 内容块包含 `contenteditable` 区域，如果不限制只能通过手柄拖拽，用户选中文本时会意外触发排序。
+		* **交互体验：** 设置 `group: 'shared-modules'`，但不允许用户将某个模块（如相册或备忘）从一个时间卡片拖拽到另一个时间卡片中。
+		* **视觉反馈：** 设置 `ghostClass: 'bg-indigo-50/50'` 以提供拖拽时的占位反馈。
 2.  **Day 序号重算 (Auto-Recalculate):**
     *   必须实现 `recalculateDayNumbers()` 函数。
     *   在 `addNewDay()`, `deleteDay()`, 以及 Day 排序结束 (`onEnd`) 时自动调用，确保 "Day 1, Day 2..." 永远连续正确。
