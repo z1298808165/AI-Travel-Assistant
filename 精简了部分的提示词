@@ -178,37 +178,79 @@
   *   **新增时间轴节点（添加新卡片按钮）：** 点击后插入的卡片主题色应该是随机的。
   *   **HTML 结构：**
     ```html
-	<div class="content-list space-y-2 js-sortable-content min-h-[10px]">
+	<!-- Type A: 完整时间轴卡片结构 -->
+	<!-- 核心修复：添加了最外层的 js-timeline-card 类和对应的样式容器 -->
+	<div class="relative p-5 rounded-2xl border mb-6 transition-all duration-300 group/card js-timeline-card bg-rose-50/60 border-rose-200">
 		
-		<!-- 修改处 1: 移除了 pl-7，添加了 ml-0 或保持默认，确保内容靠左对齐 -->
-		<div class="js-content-block relative group/item transition-all duration-200">
-			
-			<!-- 修改处 2: 将 left-0 改为 -left-8 (或 -left-7)，让抓手悬浮在卡片内边距的空白处 -->
-			<!-- 同时也建议增加 flex 居中让图标看起来更舒服 -->
-			<div class="module-drag-handle absolute -left-8 top-3 w-6 h-6 flex items-center justify-center cursor-grab active:cursor-grabbing text-gray-400 hover:text-teal-600 opacity-0 group-hover/item:opacity-100 transition-opacity z-10 select-none" title="按住拖拽排序">
-				<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM8 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM8 18a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM16 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM16 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM16 18a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/></svg>
-			</div>
-
-			<button onclick="this.closest('.js-content-block').remove()" class="absolute -right-2 -top-2 text-red-400 opacity-0 group-hover/item:opacity-100 no-print z-10 hover:text-red-600 transition-colors bg-white/80 backdrop-blur shadow-sm rounded-full p-1 border border-red-100">
-				<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+		<!-- 1. 右上角悬浮工具栏 (拖拽/换色/删除) -->
+		<div class="absolute top-3 right-3 flex gap-1 opacity-100 md:opacity-0 md:group-hover/card:opacity-100 transition-opacity z-20 no-print">
+			<!-- 拖拽手柄 -->
+			<button class="card-drag-handle w-7 h-7 flex items-center justify-center bg-white/50 hover:bg-white rounded-full text-gray-400 hover:text-gray-600 cursor-move transition-colors shadow-sm border border-transparent hover:border-gray-200">
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>
 			</button>
+			<!-- 换色按钮 -->
+			<button onclick="window.cycleCardColor(this)" class="w-7 h-7 flex items-center justify-center bg-white/50 hover:bg-white rounded-full text-gray-400 hover:text-indigo-500 transition-colors shadow-sm border border-transparent hover:border-gray-200" title="切换主题色">
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.74 5.88a5.95 5.95 0 0 1-8.48 8.48L3.5 11.21a5.95 5.95 0 0 1 8.35-8.52z"></path><path d="M12 22a7 7 0 0 0 7-7v-1.19"></path></svg>
+			</button>
+			<!-- 删除按钮 -->
+			<button onclick="window.showConfirmModal(() => window.deleteItem(this))" class="w-7 h-7 flex items-center justify-center bg-white/50 hover:bg-white rounded-full text-gray-400 hover:text-red-500 transition-colors shadow-sm border border-transparent hover:border-gray-200" title="删除卡片">
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+			</button>
+		</div>
 
-			<!-- 内容区域现在会铺满宽度，与上方的 Title 对齐 -->
-			<div class="p-3 bg-white/60 rounded-lg text-sm text-gray-700 leading-relaxed border border-transparent hover:border-teal-200/50 transition-all focus-within:bg-white focus-within:border-teal-300 focus-within:shadow-sm" contenteditable="true">
-				在此处输入行程详情...
+		<!-- 2. 卡片 Header (时间 + 地点 + 装饰线) -->
+		<!-- 样式逻辑：border-b 的颜色需要跟随主题色 (这里默认为 border-rose-200) -->
+		<div class="flex items-center gap-3 border-b border-rose-200 pb-2 mb-3">
+			<!-- 时间胶囊 -->
+			<div class="js-time-badge px-2.5 py-1 rounded-md bg-rose-500 text-white font-mono font-bold text-sm shadow-sm outline-none focus:bg-gray-800 focus:text-white transition-colors" contenteditable="true">
+				09:00
+			</div>
+			<!-- 地点 -->
+			<div class="text-xs font-bold uppercase tracking-widest text-gray-500 outline-none hover:text-gray-800 transition-colors" contenteditable="true">
+				LOCATION
 			</div>
 		</div>
 
+		<!-- 3. 卡片标题 -->
+		<h3 class="text-xl font-serif font-bold text-gray-800 mb-4 outline-none border-b border-transparent hover:border-gray-200 inline-block" contenteditable="true">
+			行程节点标题
+		</h3>
+
+		<!-- 4. 内容容器 (Content List) -->
+		<!-- 这里的 js-sortable-content 用于实现内部模块的拖拽排序 -->
+		<div class="content-list space-y-2 js-sortable-content min-h-[10px]">
+			
+			<!-- 默认插入一个文本模块 -->
+			<div class="js-content-block relative group/item transition-all duration-200">
+				<!-- 模块拖拽手柄 -->
+				<div class="module-drag-handle absolute -left-8 top-3 w-6 h-6 flex items-center justify-center cursor-grab active:cursor-grabbing text-gray-400 hover:text-teal-600 opacity-0 group-hover/item:opacity-100 transition-opacity z-10 select-none" title="按住拖拽排序">
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM8 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM8 18a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM16 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM16 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM16 18a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/></svg>
+				</div>
+				<!-- 模块删除按钮 -->
+				<button onclick="this.closest('.js-content-block').remove()" class="absolute -right-2 -top-2 text-red-400 opacity-0 group-hover/item:opacity-100 no-print z-10 hover:text-red-600 transition-colors bg-white/80 backdrop-blur shadow-sm rounded-full p-1 border border-red-100">
+					<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+				</button>
+				<!-- 文本内容 -->
+				<div class="p-3 bg-white/60 rounded-lg text-sm text-gray-700 leading-relaxed border border-transparent hover:border-teal-200/50 transition-all focus-within:bg-white focus-within:border-teal-300 focus-within:shadow-sm outline-none" contenteditable="true">
+					在此处输入行程详情...
+				</div>
+			</div>
+
+		</div>
+
+		<!-- 5. 底部快速插入栏 -->
+		<div class="mt-4 pt-2 border-t border-dashed border-gray-300/50 flex gap-2 overflow-x-auto no-print opacity-60 hover:opacity-100 transition-opacity scrollbar-hide">
+			<button onclick="window.addContent(this, 'text')" class="flex-shrink-0 text-xs px-2 py-1 bg-white rounded border border-gray-200 hover:bg-gray-50 shadow-sm">📝文本</button>
+			<button onclick="window.addContent(this, 'photo')" class="flex-shrink-0 text-xs px-2 py-1 bg-white rounded border border-gray-200 hover:bg-gray-50 shadow-sm">🖼️相册</button>
+			<button onclick="window.addContent(this, 'camera')" class="flex-shrink-0 text-xs px-2 py-1 bg-white rounded border border-gray-200 hover:bg-gray-50 shadow-sm">📷机位</button>
+			<button onclick="window.addContent(this, 'warning')" class="flex-shrink-0 text-xs px-2 py-1 bg-white rounded border border-gray-200 hover:bg-gray-50 shadow-sm">⚠️提醒</button>
+			<button onclick="window.addContent(this, 'ticket')" class="flex-shrink-0 text-xs px-2 py-1 bg-white rounded border border-gray-200 hover:bg-gray-50 shadow-sm">🎫门票</button>
+			
+			<!-- 核心修复点：现在 this.closest('.js-timeline-card') 可以找到父容器了 -->
+			<button onclick="window.insertTimelineCard(this.closest('.js-timeline-card'), 'transit')" class="flex-shrink-0 text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded border border-blue-200 hover:bg-blue-100 font-bold shadow-sm">🚗交通</button>
+		</div>
+
 	</div>
-        <div class="mt-4 pt-2 border-t border-dashed border-gray-300/50 flex gap-2 overflow-x-auto no-print opacity-60 hover:opacity-100 transition-opacity scrollbar-hide">
-            <button onclick="window.addContent(this, 'text')" class="flex-shrink-0 text-xs px-2 py-1 bg-white rounded border border-gray-200 hover:bg-gray-50 shadow-sm">📝文本</button>
-            <button onclick="window.addContent(this, 'photo')" class="flex-shrink-0 text-xs px-2 py-1 bg-white rounded border border-gray-200 hover:bg-gray-50 shadow-sm">🖼️相册</button>
-            <button onclick="window.addContent(this, 'camera')" class="flex-shrink-0 text-xs px-2 py-1 bg-white rounded border border-gray-200 hover:bg-gray-50 shadow-sm">📷机位</button>
-            <button onclick="window.addContent(this, 'warning')" class="flex-shrink-0 text-xs px-2 py-1 bg-white rounded border border-gray-200 hover:bg-gray-50 shadow-sm">⚠️提醒</button>
-            <button onclick="window.addContent(this, 'ticket')" class="flex-shrink-0 text-xs px-2 py-1 bg-white rounded border border-gray-200 hover:bg-gray-50 shadow-sm">🎫门票</button>
-            <button onclick="window.insertTimelineCard(this.closest('.js-timeline-card'), 'transit')" class="flex-shrink-0 text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded border border-blue-200 hover:bg-blue-100 font-bold shadow-sm">🚗交通</button>
-        </div>
-    </div>
     ```
 
 **Type B: 交通节点卡片 (Traffic Pill)**
@@ -216,28 +258,40 @@
 *   **功能：** 支持独立拖拽、独立删除。
 *   **HTML 结构：**
     ```html
-	<div class="group/traffic relative py-2 my-2 js-sortable-item flex justify-center z-10" data-type="traffic">
+	<!-- Type B: 交通节点卡片 (响应式修正版) -->
+	<div class="group/traffic relative py-2 my-2 js-sortable-item flex justify-center z-10 w-full" data-type="traffic">
+		
+		<!-- 核心修改点：
+			 1. w-full: 移动端占满容器宽度 
+			 2. md:w-[300px]: PC端恢复固定宽度
+			 3. md:mx-auto: PC端居中
+			 4. rounded-2xl md:rounded-full: 移动端微圆角，PC端全圆角(胶囊) 
+		-->
+		<div class="relative flex items-center gap-1 pl-2 pr-4 py-2 border border-gray-300 bg-gray-50/90 shadow-sm transition-all duration-300 group-hover/traffic:border-gray-400 w-full md:w-[300px] md:mx-auto rounded-2xl md:rounded-full">
 			
-			<div class="relative flex items-center gap-1 pl-2 pr-4 py-2 rounded-full border border-gray-300 bg-gray-50/90 shadow-sm w-[300px] flex-none mx-auto group-hover/traffic:border-gray-400 transition-colors">
-				
-				<div class="absolute left-[-3rem] w-3 h-3 rounded-full bg-gray-300 border-2 border-white z-0 hidden sm:block"></div>
+			<!-- PC端装饰点 (仅在大屏显示) -->
+			<div class="absolute left-[-3rem] w-3 h-3 rounded-full bg-gray-300 border-2 border-white z-0 hidden md:block"></div>
 
-				<div class="traffic-drag-handle cursor-move text-gray-300 hover:text-gray-500 px-1 shrink-0 flex items-center transition-colors" title="拖拽排序">
-					<svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>
-				</div>
-				
-				<div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center cursor-pointer hover:bg-slate-300 transition-colors shrink-0 text-lg select-none" onclick="window.cycleTrafficIcon(this)">🚗</div>
-				
-				<div class="flex divide-x divide-gray-300 w-full text-sm text-gray-600">
-					<div class="px-2 flex-1 text-center outline-none hover:bg-gray-100 rounded cursor-text transition-colors truncate" contenteditable="true" placeholder="距离">15km</div>
-					<div class="px-2 flex-1 text-center outline-none hover:bg-gray-100 rounded cursor-text transition-colors truncate" contenteditable="true" placeholder="时间">30min</div>
-				</div>
-				
-				<button class="text-gray-300 hover:text-red-500 transition-colors ml-1 shrink-0" onclick="window.confirmDelete(this.closest('.js-sortable-item'))">
-					<svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-				</button>
+			<!-- 拖拽手柄 -->
+			<div class="traffic-drag-handle cursor-move text-gray-300 hover:text-gray-500 px-1 shrink-0 flex items-center transition-colors" title="拖拽排序">
+				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>
 			</div>
+			
+			<!-- 交通图标 (点击切换) -->
+			<div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center cursor-pointer hover:bg-slate-300 transition-colors shrink-0 text-lg select-none" onclick="window.cycleTrafficIcon(this)">🚗</div>
+			
+			<!-- 输入区域 -->
+			<div class="flex divide-x divide-gray-300 w-full text-sm text-gray-600">
+				<div class="px-2 flex-1 text-center outline-none hover:bg-gray-100 rounded cursor-text transition-colors truncate" contenteditable="true" placeholder="距离">15km</div>
+				<div class="px-2 flex-1 text-center outline-none hover:bg-gray-100 rounded cursor-text transition-colors truncate" contenteditable="true" placeholder="时间">30min</div>
+			</div>
+			
+			<!-- 删除按钮 -->
+			<button class="text-gray-300 hover:text-red-500 transition-colors ml-1 shrink-0" onclick="window.showConfirmModal(() => window.deleteItem(this.closest('.js-sortable-item')))">
+				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+			</button>
 		</div>
+	</div>
     ```
 
 #### 4. 样式化内容模块 (Styled Content Blocks)
@@ -248,7 +302,7 @@
     *   **图片单元交互 (Image Slot Interaction - Critical):**
         *   **独立性：** 每个图片单元 (Slot) 必须包含一个右上角的**小红叉删除按钮**，允许用户删除单个格子。
         *   **A. 无图状态 (Empty):** 显示灰色背景 + 小相机/上传图标。点击触发文件上传 (`input type="file"`).
-			*   点击已上传图片鼠标悬浮或者点击图片（移动端）可显示按钮“查看”和“替换” -> **查看逻辑：** JS 动态创建全屏黑色遮罩 (`fixed inset-0 z-[999]`) 显示大图 (读取当前的 Base64 src)，**严禁跳转页面**；**替换逻辑：** 重新调用上传并覆盖原有的 Base64 数据。
+			*   点击已上传图片鼠标悬浮或者点击图片（移动端）可显示按钮“查看”和“替换” -> **查看逻辑：** JS 动态创建全屏黑色遮罩 (`fixed inset-0 z-[999]`) 显示大图 (读取当前的 Base64 src)，**严禁跳转页面**；**替换逻辑：** 重新调用上传并覆盖原有的 Base64 数据。 图片压缩逻辑 要求（Canvas 压缩至 1080p / 0.7 质量）。
         *   **B. 有图状态 (Filled):** 显示图片 (`object-cover w-full h-full rounded-lg`).
 			*   **显示逻辑**：将生成的 Base64 字符串直接赋值给 `<img>` 标签的 `src` 属性，确保图片数据成为 HTML DOM 的一部分，从而实现自动保存和单文件携带。
             *   **遮罩层 (Overlay):** 图片上方覆盖一个操作层，样式遵循“移动端常显，桌面端Hover显”。
@@ -299,7 +353,7 @@
     *   Level 2: `.js-timeline-container` (Card 排序)。
 	* **Level 3: `.js-sortable-content` (内容模块级排序)。**
 		* **关键配置：** 必须配置 `handle: '.module-drag-handle'`。**原因：** 内容块包含 `contenteditable` 区域，如果不限制只能通过手柄拖拽，用户选中文本时会意外触发排序。
-		* **交互体验：** 设置 `group: 'shared-modules'`，但不允许用户将某个模块（如相册或备忘）从一个时间卡片拖拽到另一个时间卡片中。
+		* **交互体验：** 设置 `group: 'shared-modules'`。
 		* **视觉反馈：** 设置 `ghostClass: 'bg-indigo-50/50'` 以提供拖拽时的占位反馈。
 2.  **Day 序号重算 (Auto-Recalculate):**
     *   必须实现 `recalculateDayNumbers()` 函数。
